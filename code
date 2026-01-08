@@ -1,0 +1,245 @@
+#include <iostream>
+#include <vector>
+#include <string>
+using namespace std;
+
+/* ---------------- Transaction Class ---------------- */
+class Transaction {
+public:
+    string type;
+    double amount;
+
+    Transaction(string t, double a) {
+        type = t;
+        amount = a;
+    }
+
+    void display() {
+        cout << type << ": $" << amount << endl;
+    }
+};
+
+/* ---------------- Account Class ---------------- */
+class Account {
+private:
+    double balance;
+    vector<Transaction> transactions;
+
+public:
+    Account(double initialBalance = 0) {
+        balance = initialBalance;
+    }
+
+    void deposit(double amount) {
+        if (amount > 0) {
+            balance += amount;
+            transactions.push_back(Transaction("Deposit", amount));
+            cout << "Deposited $" << amount << " successfully.\n";
+        } else {
+            cout << "Invalid deposit amount.\n";
+        }
+    }
+
+    void withdraw(double amount) {
+        if (amount > 0 && amount <= balance) {
+            balance -= amount;
+            transactions.push_back(Transaction("Withdrawal", amount));
+            cout << "Withdrew $" << amount << " successfully.\n";
+        } else {
+            cout << "Insufficient balance or invalid amount.\n";
+        }
+    }
+
+    bool transfer(Account &other, double amount) {
+        if (amount > 0 && amount <= balance) {
+            balance -= amount;
+            other.balance += amount;
+            transactions.push_back(Transaction("Transfer Out", amount));
+            other.transactions.push_back(Transaction("Transfer In", amount));
+            cout << "Transferred $" << amount << " successfully.\n";
+            return true;
+        } else {
+            cout << "Transfer failed. Insufficient balance or invalid amount.\n";
+            return false;
+        }
+    }
+
+    double getBalance() {
+        return balance;
+    }
+
+    void showTransactions() {
+        if (transactions.empty()) {
+            cout << "No transactions yet.\n";
+        } else {
+            cout << "Transaction History:\n";
+            for (auto &t : transactions) {
+                t.display();
+            }
+        }
+    }
+};
+
+/* ---------------- Customer Class ---------------- */
+class Customer {
+public:
+    string name;
+    string username;
+    string password;
+    Account account;
+
+    Customer(string n, string u, string p, double initialBalance = 0)
+        : name(n), username(u), password(p), account(initialBalance) {}
+
+    void showAccountInfo() {
+        cout << "\nCustomer Name: " << name << endl;
+        cout << "Username: " << username << endl;
+        cout << "Account Balance: $" << account.getBalance() << endl;
+        account.showTransactions();
+        cout << endl;
+    }
+};
+
+/* ---------------- Banking System ---------------- */
+vector<Customer> customers;
+
+// Find customer by username
+Customer* findCustomer(const string &username) {
+    for (auto &c : customers) {
+        if (c.username == username)
+            return &c;
+    }
+    return nullptr;
+}
+
+// Register customer
+void registerCustomer() {
+    string name, username, password;
+    double initialBalance;
+
+    cin.ignore(); // Clear buffer before getline
+    cout << "Enter name: ";
+    getline(cin, name);
+
+    cout << "Enter username: ";
+    cin >> username;
+
+    if (findCustomer(username) != nullptr) {
+        cout << "Username already exists!\n";
+        return;
+    }
+
+    cout << "Enter password: ";
+    cin >> password;
+
+    cout << "Enter initial deposit: ";
+    cin >> initialBalance;
+
+    customers.push_back(Customer(name, username, password, initialBalance));
+    cout << "Registration successful!\n";
+}
+
+// Login customer
+Customer* login() {
+    string username, password;
+    cout << "Enter username: ";
+    cin >> username;
+    cout << "Enter password: ";
+    cin >> password;
+
+    Customer* c = findCustomer(username);
+    if (c != nullptr && c->password == password) {
+        cout << "Login successful!\n";
+        return c;
+    } else {
+        cout << "Invalid username or password.\n";
+        return nullptr;
+    }
+}
+
+/* ---------------- Customer Menu ---------------- */
+void customerMenu(Customer* customer) {
+    int choice;
+    do {
+        cout << "\n--- Customer Menu ---\n";
+        cout << "1. Deposit Money\n";
+        cout << "2. Withdraw Money\n";
+        cout << "3. Transfer Funds\n";
+        cout << "4. View Account Balance & Transactions\n";
+        cout << "5. Logout\n";
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: {
+                double amount;
+                cout << "Enter amount to deposit: ";
+                cin >> amount;
+                customer->account.deposit(amount);
+                break;
+            }
+            case 2: {
+                double amount;
+                cout << "Enter amount to withdraw: ";
+                cin >> amount;
+                customer->account.withdraw(amount);
+                break;
+            }
+            case 3: {
+                string recipientUsername;
+                double amount;
+                cout << "Enter recipient username: ";
+                cin >> recipientUsername;
+                Customer* recipient = findCustomer(recipientUsername);
+                if (recipient != nullptr) {
+                    cout << "Enter amount to transfer: ";
+                    cin >> amount;
+                    customer->account.transfer(recipient->account, amount);
+                } else {
+                    cout << "Recipient not found!\n";
+                }
+                break;
+            }
+            case 4:
+                customer->showAccountInfo();
+                break;
+            case 5:
+                cout << "Logging out...\n";
+                break;
+            default:
+                cout << "Invalid choice. Try again.\n";
+        }
+    } while (choice != 5);
+}
+
+/* ---------------- Main Menu ---------------- */
+int main() {
+    int choice;
+    do {
+        cout << "\n--- Banking System ---\n";
+        cout << "1. Register\n";
+        cout << "2. Login\n";
+        cout << "3. Exit\n";
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1:
+                registerCustomer();
+                break;
+            case 2: {
+                Customer* customer = login();
+                if (customer != nullptr)
+                    customerMenu(customer);
+                break;
+            }
+            case 3:
+                cout << "Exiting system...\n";
+                break;
+            default:
+                cout << "Invalid choice. Try again.\n";
+        }
+    } while (choice != 3);
+
+    return 0;
+}
